@@ -10,11 +10,11 @@ log = logging.getLogger()
 
 class Auth(RPCHandler):
 
-    def login(self, code, userid):
+    def login(self, code):
 
         r = self.rcall(
             'ucus', 'auth.plat_third_login',
-            {'login_code': code, 'org_userid': userid}
+            {'login_code': code}
         )
 
         userid = r['userid']
