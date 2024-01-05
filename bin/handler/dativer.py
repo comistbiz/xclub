@@ -26,6 +26,15 @@ class XclubDativer(Dativer):
         'utime': 'str'
     }
 
+    club_activity_user = {
+        '_name': 'club_activity_user',
+        'id': 'str',
+        'ctime': 'str',
+        'utime': 'str',
+        'activity_id': 'str',
+        'user_id': 'str'
+    }
+
 
     schemas = [club_user, club_activity]
 
