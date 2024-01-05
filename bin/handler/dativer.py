@@ -16,7 +16,18 @@ class XclubDativer(Dativer):
         'cate_code': {'type': 'str', 'relate': 'cate_role_bind.cate_code'},
     }
 
-    schemas = [club_user]
+    club_activity = {
+        '_name': 'club_activity',
+        'id': 'str',
+        'title': 'str',
+        'content': 'str',
+        'activity_time':'str',
+        'ctime': 'str',
+        'utime': 'str'
+    }
+
+
+    schemas = [club_user, club_activity]
 
     def map_data(self, data):
 
