@@ -36,7 +36,7 @@ class XclubDativer(Dativer):
     }
 
 
-    schemas = [club_user, club_activity]
+    schemas = [club_user, club_activity, club_activity_user]
 
     def map_data(self, data):
 
