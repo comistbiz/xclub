@@ -18,7 +18,7 @@ class XclubDativer(Dativer):
 
     club_activity = {
         '_name': 'club_activity',
-        'id': 'str',
+        'id': 'int',
         'title': 'str',
         'content': 'str',
         'activity_time':'str',
@@ -28,10 +28,10 @@ class XclubDativer(Dativer):
 
     club_activity_user = {
         '_name': 'club_activity_user',
-        'id': 'str',
+        'id': 'int',
         'ctime': 'str',
         'utime': 'str',
-        'activity_id': 'str',
+        'activity_id': {'type': 'int', 'relate': 'club_activity.id'},
         'user_id': 'str'
     }
 
