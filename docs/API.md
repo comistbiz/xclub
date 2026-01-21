@@ -93,6 +93,8 @@ Session 有效期为 7 天，过期后需重新登录。
 | session_id | string | 登录凭证，后续请求需携带 |
 | openid | string | 用户唯一标识 |
 | is_new_user | boolean | 是否为新用户 |
+| role | integer | 用户角色：1=游客，2=成员，3=管理员 |
+| role_name | string | 角色名称 |
 
 **响应示例**:
 
@@ -103,7 +105,9 @@ Session 有效期为 7 天，过期后需重新登录。
   "data": {
     "session_id": "abc123def456...",
     "openid": "oXxxxxxxxxxxxx",
-    "is_new_user": true
+    "is_new_user": true,
+    "role": 1,
+    "role_name": "游客"
   }
 }
 ```
@@ -258,6 +262,8 @@ if (result.data.code !== 0 || !result.data.data.valid) {
 | session_id | string | 登录凭证，后续请求需携带 |
 | openid | string | 用户唯一标识 |
 | user_id | integer | 用户 ID |
+| role | integer | 用户角色：1=游客，2=成员，3=管理员 |
+| role_name | string | 角色名称 |
 
 **响应示例**:
 
@@ -268,7 +274,9 @@ if (result.data.code !== 0 || !result.data.data.valid) {
   "data": {
     "session_id": "abc123def456...",
     "openid": "oXxxxxxxxxxxxx",
-    "user_id": 1
+    "user_id": 1,
+    "role": 2,
+    "role_name": "成员"
   }
 }
 ```

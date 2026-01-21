@@ -44,12 +44,19 @@ async def login(request: WechatLoginRequest):
         avatar_url=request.avatar_url
     )
     
+    # 获取用户角色信息
+    user = user_service.get_user_by_openid(openid)
+    role = user.get('role', 1) if user else 1
+    role_name = user.get('role_name', '游客') if user else '游客'
+    
     log.info(f"用户登录成功: openid={openid}, is_new_user={is_new_user}")
     
     return success(data={
         "session_id": session_id,
         "openid": openid,
-        "is_new_user": is_new_user
+        "is_new_user": is_new_user,
+        "role": role,
+        "role_name": role_name
     })
 
 
@@ -131,10 +138,17 @@ async def register(request: RegisterRequest):
         avatar_url=request.avatar_url,
     )
     
+    # 获取用户角色信息
+    user = user_service.get_user_by_openid(openid)
+    role = user.get('role', 1) if user else 2  # 注册成功默认为成员
+    role_name = user.get('role_name', '成员') if user else '成员'
+    
     log.info(f"用户注册成功: openid={openid}, user_id={user_id}")
     
     return success(data={
         "session_id": session_id,
         "openid": openid,
         "user_id": user_id,
+        "role": role,
+        "role_name": role_name
     }, msg="注册成功")
