@@ -5,6 +5,7 @@ XClub API 测试脚本
 使用方法:
     1. 启动服务: uvicorn app.main:app --reload --port 9900
     2. 运行测试: python tests/test_api.py
+    3. 生成激活码: python tests/test_api.py --gen-code [数量] [备注]
 
 注意:
     - 微信登录接口需要真实的 wx.login() code，这里使用 mock 模式测试
@@ -16,6 +17,9 @@ import sys
 import httpx
 import asyncio
 from typing import Optional
+
+# 添加项目根目录到 path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 配置
 BASE_URL = os.getenv("TEST_BASE_URL", "http://localhost:9900")
@@ -382,12 +386,142 @@ async def test_with_real_session(session_id: str):
         await tester.close()
 
 
+def generate_activation_codes(count: int = 1, remark: str = ""):
+    """生成激活码
+    
+    Args:
+        count: 生成数量，默认1个
+        remark: 备注信息
+    """
+    from app.services.activation_code import activation_code_service
+    from app.db import install as db_install
+    from app.config import DATABASE
+    
+    # 初始化数据库连接
+    db_install(DATABASE)
+    
+    print("=" * 60)
+    print("生成激活码")
+    print("=" * 60)
+    print(f"数量: {count}")
+    if remark:
+        print(f"备注: {remark}")
+    print("-" * 60)
+    
+    codes = []
+    for i in range(count):
+        code = activation_code_service.create_activation_code(remark=remark)
+        codes.append(code)
+        print(f"[{i+1}] {code}")
+    
+    print("-" * 60)
+    print(f"共生成 {len(codes)} 个激活码")
+    
+    # 如果生成多个，额外输出便于复制的格式
+    if count > 1:
+        print("\n便于复制的格式:")
+        print("\n".join(codes))
+    
+    return codes
+
+
+def list_activation_codes(state: int = None, limit: int = 20):
+    """列出激活码
+    
+    Args:
+        state: 状态过滤 (1=未使用, 2=已使用, 3=已作废)
+        limit: 显示数量
+    """
+    from app.db import get_connection, install as db_install
+    from app.config import DATABASE
+    from app.services.activation_code import ActivationCodeState
+    
+    # 初始化数据库连接
+    db_install(DATABASE)
+    
+    print("=" * 60)
+    print("激活码列表")
+    print("=" * 60)
+    
+    state_names = {
+        ActivationCodeState.UNUSED: "未使用",
+        ActivationCodeState.USED: "已使用",
+        ActivationCodeState.INVALID: "已作废",
+    }
+    
+    with get_connection('xclub') as db:
+        where = {}
+        if state:
+            where['state'] = state
+        
+        codes = db.select(
+            'club_activation_code',
+            where=where if where else None,
+            order='id DESC',
+            limit=limit
+        )
+    
+    if not codes:
+        print("暂无激活码")
+        return
+    
+    print(f"{'ID':<6} {'激活码':<14} {'状态':<8} {'用户ID':<8} {'备注':<20} {'创建时间'}")
+    print("-" * 80)
+    
+    for code in codes:
+        state_name = state_names.get(code['state'], '未知')
+        user_id = code.get('user_id') or '-'
+        remark = code.get('remark', '')[:18] or '-'
+        create_time = str(code.get('create_time', ''))[:19]
+        print(f"{code['id']:<6} {code['code']:<14} {state_name:<8} {str(user_id):<8} {remark:<20} {create_time}")
+    
+    print("-" * 80)
+    print(f"共 {len(codes)} 条记录")
+
+
+def print_usage():
+    """打印使用说明"""
+    print("""
+XClub API 测试脚本
+
+使用方法:
+    python tests/test_api.py                     运行 API 测试
+    python tests/test_api.py <session_id>        使用指定 session 测试
+    python tests/test_api.py --gen-code [N] [备注]   生成 N 个激活码
+    python tests/test_api.py --list-codes [状态]     列出激活码 (状态: 1=未使用, 2=已使用, 3=已作废)
+
+示例:
+    python tests/test_api.py --gen-code              生成 1 个激活码
+    python tests/test_api.py --gen-code 5            生成 5 个激活码
+    python tests/test_api.py --gen-code 10 "批次A"   生成 10 个激活码，备注为 "批次A"
+    python tests/test_api.py --list-codes            列出所有激活码
+    python tests/test_api.py --list-codes 1          列出未使用的激活码
+""")
+
+
 if __name__ == "__main__":
     # 检查命令行参数
     if len(sys.argv) > 1:
-        # 使用指定的 session_id 测试
-        session_id = sys.argv[1]
-        asyncio.run(test_with_real_session(session_id))
+        arg = sys.argv[1]
+        
+        if arg == "--help" or arg == "-h":
+            print_usage()
+        
+        elif arg == "--gen-code":
+            # 生成激活码
+            count = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+            remark = sys.argv[3] if len(sys.argv) > 3 else ""
+            generate_activation_codes(count, remark)
+        
+        elif arg == "--list-codes":
+            # 列出激活码
+            state = int(sys.argv[2]) if len(sys.argv) > 2 else None
+            list_activation_codes(state)
+        
+        else:
+            # 使用指定的 session_id 测试
+            session_id = arg
+            asyncio.run(test_with_real_session(session_id))
     else:
         # 运行标准测试
         asyncio.run(run_tests())
