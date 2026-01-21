@@ -51,17 +51,19 @@ setup_exception_handlers(app)
 @app.get("/", tags=["健康检查"])
 def root():
     """根路径"""
-    return {
+    from app.core.response import success
+    return success(data={
         "service": settings.APP_NAME,
         "version": "2.0.0",
         "status": "running"
-    }
+    })
 
 
 @app.get("/health", tags=["健康检查"])
 def health_check():
     """健康检查"""
-    return {"status": "ok"}
+    from app.core.response import success
+    return success(data={"status": "ok"})
 
 
 @app.on_event("startup")

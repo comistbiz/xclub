@@ -2,19 +2,21 @@
 """用户路由"""
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from app.schemas.user import UserInfo, UserUpdate, UserRoleUpdate
 from app.services.user import user_service
 from app.services.session import SessionData
 from app.dependencies import require_login
+from app.core.response import success, ErrorCode
+from app.core.exceptions import BizError
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/xclub/v1/user", tags=["用户"])
 
 
-@router.get("/info", response_model=UserInfo)
+@router.get("/info")
 async def get_current_user_info(session: SessionData = Depends(require_login)):
     """获取当前登录用户信息
     
@@ -30,10 +32,10 @@ async def get_current_user_info(session: SessionData = Depends(require_login)):
             avatar=session.avatar_url or ""
         )
     
-    return UserInfo(**user)
+    return success(data=UserInfo(**user).model_dump())
 
 
-@router.get("/{user_id}", response_model=UserInfo)
+@router.get("/{user_id}")
 async def get_user_info(
     user_id: int,
     session: SessionData = Depends(require_login)
@@ -45,12 +47,12 @@ async def get_user_info(
     user = user_service.get_user_by_id(user_id)
     
     if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
+        raise BizError(code=ErrorCode.USER_NOT_FOUND, msg="用户不存在")
     
-    return UserInfo(**user)
+    return success(data=UserInfo(**user).model_dump())
 
 
-@router.put("/info", response_model=UserInfo)
+@router.put("/info")
 async def update_current_user_info(
     data: UserUpdate,
     session: SessionData = Depends(require_login)
@@ -62,7 +64,7 @@ async def update_current_user_info(
     update_data = data.model_dump(exclude_none=True)
     
     if not update_data:
-        raise HTTPException(status_code=400, detail="没有要更新的数据")
+        raise BizError(code=ErrorCode.PARAM_ERROR, msg="没有要更新的数据")
     
     # 确保用户存在
     user = user_service.get_user_by_openid(session.openid)
@@ -78,7 +80,7 @@ async def update_current_user_info(
     
     # 返回更新后的用户信息
     updated_user = user_service.get_user_by_openid(session.openid)
-    return UserInfo(**updated_user)
+    return success(data=UserInfo(**updated_user).model_dump())
 
 
 @router.put("/{user_id}/role")
@@ -93,17 +95,17 @@ async def update_user_role(
     """
     # 检查当前用户是否为管理员
     if not user_service.is_admin(session.openid):
-        raise HTTPException(status_code=403, detail="需要管理员权限")
+        raise BizError(code=ErrorCode.FORBIDDEN, msg="需要管理员权限")
     
     # 获取目标用户
     target_user = user_service.get_user_by_id(user_id)
     if not target_user:
-        raise HTTPException(status_code=404, detail="用户不存在")
+        raise BizError(code=ErrorCode.USER_NOT_FOUND, msg="用户不存在")
     
     # 更新角色
-    success = user_service.update_user_role(target_user['openid'], data.role)
+    ok = user_service.update_user_role(target_user['openid'], data.role)
     
-    if not success:
-        raise HTTPException(status_code=400, detail="更新失败")
+    if not ok:
+        raise BizError(code=ErrorCode.PARAM_ERROR, msg="更新失败")
     
-    return {"message": "success"}
+    return success(msg="更新成功")

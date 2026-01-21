@@ -1,7 +1,7 @@
 # coding: utf-8
 """认证相关 Schema"""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
@@ -17,6 +17,23 @@ class LoginResponse(BaseModel):
     session_id: str                  # 自定义登录态标识
     openid: str                      # 用户 openid
     is_new_user: bool = False        # 是否新用户
+
+
+class RegisterRequest(BaseModel):
+    """注册请求"""
+    code: str                        # wx.login() 获取的 code
+    activation_code: str = Field(..., min_length=1, description="激活码")
+    realname: Optional[str] = None   # 真实姓名
+    nickname: Optional[str] = None   # 昵称
+    avatar_url: Optional[str] = None # 头像 URL
+
+
+class RegisterResponse(BaseModel):
+    """注册响应"""
+    session_id: str                  # 自定义登录态标识
+    openid: str                      # 用户 openid
+    user_id: int                     # 用户 ID
+    message: str = "注册成功"
 
 
 class SessionCheckResponse(BaseModel):

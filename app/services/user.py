@@ -85,6 +85,7 @@ class UserService:
         openid: str,
         nickname: str = "",
         avatar: str = "",
+        role: int = None,
         **kwargs
     ) -> int:
         """创建用户
@@ -93,6 +94,7 @@ class UserService:
             openid: 微信 openid
             nickname: 昵称
             avatar: 头像
+            role: 角色，默认为游客
             **kwargs: 其他字段
             
         Returns:
@@ -102,7 +104,7 @@ class UserService:
             'openid': openid,
             'nickname': nickname or '',
             'avatar': avatar or '',
-            'role': UserRole.VISITOR,
+            'role': role if role is not None else UserRole.VISITOR,
             'state': 1,
         }
         
@@ -118,6 +120,69 @@ class UserService:
 
         log.info(f"创建用户: openid={openid}, user_id={user_id}")
         return user_id
+
+    def register_user(
+        self,
+        openid: str,
+        activation_code: str,
+        realname: str = "",
+        nickname: str = "",
+        avatar: str = "",
+    ) -> tuple[int, str]:
+        """注册用户（使用激活码）
+        
+        Args:
+            openid: 微信 openid
+            activation_code: 激活码
+            realname: 真实姓名
+            nickname: 昵称
+            avatar: 头像
+            
+        Returns:
+            (用户ID, 错误信息)，成功时错误信息为空
+        """
+        from app.services.activation_code import activation_code_service
+        
+        # 检查用户是否已存在
+        existing_user = self.get_user_by_openid(openid)
+        if existing_user:
+            # 如果用户已经是成员或管理员，不需要再注册
+            if existing_user.get('role', 1) >= UserRole.MEMBER:
+                return existing_user['id'], "用户已注册"
+        
+        # 验证激活码
+        is_valid, error_msg = activation_code_service.validate_code(activation_code)
+        if not is_valid:
+            return 0, error_msg
+        
+        if existing_user:
+            # 用户存在但是游客，升级为成员
+            user_id = existing_user['id']
+            update_data = {'role': UserRole.MEMBER}
+            if realname:
+                update_data['realname'] = realname
+            if nickname:
+                update_data['nickname'] = nickname
+            if avatar:
+                update_data['avatar'] = avatar
+            
+            with get_connection(self.DB_NAME) as db:
+                db.update(self.TABLE, values=update_data, where={'id': user_id})
+        else:
+            # 创建新用户，直接设置为成员
+            user_id = self.create_user(
+                openid=openid,
+                nickname=nickname,
+                avatar=avatar,
+                role=UserRole.MEMBER,
+                realname=realname,
+            )
+        
+        # 使用激活码
+        activation_code_service.use_code(activation_code, user_id)
+        
+        log.info(f"用户注册成功: openid={openid}, user_id={user_id}, activation_code={activation_code}")
+        return user_id, ""
 
     def get_or_create_user(self, openid: str, nickname: str = "", avatar: str = "") -> Dict[str, Any]:
         """获取或创建用户

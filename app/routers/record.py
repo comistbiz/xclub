@@ -4,17 +4,18 @@
 import logging
 from fastapi import APIRouter, Depends
 
-from app.schemas.record import CreateRecordRequest, CreateRecordResponse
+from app.schemas.record import CreateRecordRequest
 from app.services.feishu import feishu_service
 from app.services.session import SessionData
 from app.dependencies import require_login
+from app.core.response import success
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/xclub/v1/record", tags=["打卡记录"])
 
 
-@router.post("/create", response_model=CreateRecordResponse)
+@router.post("/create")
 async def create_record(
     request: CreateRecordRequest,
     session: SessionData = Depends(require_login)
@@ -39,7 +40,4 @@ async def create_record(
     
     log.info(f"打卡记录创建成功: openid={session.openid}, record_id={record_id}")
     
-    return CreateRecordResponse(
-        record_id=record_id,
-        message="success"
-    )
+    return success(data={"record_id": record_id}, msg="打卡成功")

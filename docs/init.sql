@@ -42,3 +42,18 @@ CREATE TABLE IF NOT EXISTS `club_user` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_openid` (`openid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='俱乐部用户表';
+
+-- 激活码表
+CREATE TABLE IF NOT EXISTS `club_activation_code` (
+    `id` bigint NOT NULL AUTO_INCREMENT,
+    `code` varchar(32) NOT NULL COMMENT '激活码',
+    `user_id` bigint DEFAULT NULL COMMENT '使用者用户ID',
+    `used_at` datetime DEFAULT NULL COMMENT '使用时间',
+    `state` smallint NOT NULL DEFAULT '1' COMMENT '状态 1.未使用 2.已使用 3.已作废',
+    `remark` varchar(200) NOT NULL DEFAULT '' COMMENT '备注',
+    `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_code` (`code`),
+    KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='激活码表';
