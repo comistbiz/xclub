@@ -86,17 +86,15 @@ class FeishuService:
         nickname: str,
         meal_type: str,
         price: float,
-        location: str,
         date: Optional[int] = None
     ) -> str:
-        """创建打卡记录
+        """创建打卡记录到飞书多维表格
         
         Args:
             nickname: 微信昵称
             meal_type: 时间段 (早餐/午餐/晚餐)
             price: 价格
-            location: 地点
-            date: 日期时间戳 (毫秒)，默认当前时间
+            date: 账单日时间戳 (毫秒)，默认当前时间
             
         Returns:
             record_id
@@ -111,14 +109,24 @@ class FeishuService:
         if date is None:
             date = int(time.time() * 1000)
         
+        # 构建细账内容: "午餐 xxx"
+        detail = f"{meal_type} {nickname}"
+        
         # 构建请求体
+        # 字段说明:
+        # - 账单日: 日期时间戳
+        # - 类目: 多选，固定 "餐食费"
+        # - 金额: 数字
+        # - 细账: 文本，格式 "午餐 xxx"
+        # - 清账说明: 多选，固定 "未清账"
+        # - 收入/支出、求和: 公式自动计算，不需要填
         payload = {
             "fields": {
-                "微信昵称": nickname,
-                "时间段": meal_type,
-                "价格": price,
-                "地点": location,
-                "日期": date
+                "账单日": date,
+                "类目": ["餐食费"],
+                "金额": price,
+                "细账": detail,
+                "清账说明": ["未清账"]
             }
         }
         

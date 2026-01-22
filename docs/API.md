@@ -569,7 +569,7 @@ if (result.data.code === 0) {
 |------|------|------|------|
 | meal_type | string | 是 | 时间段：早餐/午餐/晚餐 |
 | price | number | 是 | 价格 |
-| location | string | 是 | 地点 |
+| location | string | 否 | 地点（可选，暂不使用） |
 | date | integer | 否 | 日期时间戳（毫秒），默认当前时间 |
 
 **请求示例**:
@@ -577,8 +577,7 @@ if (result.data.code === 0) {
 ```json
 {
   "meal_type": "午餐",
-  "price": 15.5,
-  "location": "万科食堂"
+  "price": 15.5
 }
 ```
 

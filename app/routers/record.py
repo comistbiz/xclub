@@ -34,7 +34,6 @@ async def create_record(
         nickname=nickname,
         meal_type=request.meal_type.value,
         price=request.price,
-        location=request.location,
         date=request.date
     )
     

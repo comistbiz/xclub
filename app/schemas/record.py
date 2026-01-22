@@ -17,7 +17,7 @@ class CreateRecordRequest(BaseModel):
     """创建打卡记录请求"""
     meal_type: MealType              # 时间段: 早餐/午餐/晚餐
     price: float                     # 价格
-    location: str                    # 地点
+    location: Optional[str] = None   # 地点（可选，暂不使用）
     date: Optional[int] = None       # 日期时间戳(毫秒)，默认当前时间
 
 

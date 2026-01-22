@@ -267,8 +267,7 @@ class APITester:
             "/xclub/v1/record/create",
             json={
                 "meal_type": "午餐",
-                "price": 15.5,
-                "location": "测试食堂"
+                "price": 15.5
             },
             headers=self._headers()
         )
@@ -479,6 +478,126 @@ def list_activation_codes(state: int = None, limit: int = 20):
     print(f"共 {len(codes)} 条记录")
 
 
+async def create_feishu_table():
+    """创建飞书多维表格数据表
+    
+    根据账单记录的字段结构，在飞书多维表格中创建一个新的数据表
+    """
+    from app.config import settings
+    from app.services.feishu import feishu_service
+    
+    print("=" * 60)
+    print("创建飞书多维表格数据表")
+    print("=" * 60)
+    
+    # 获取 access_token
+    print_info("获取飞书 access_token...")
+    try:
+        token = await feishu_service.get_access_token()
+        print_success(f"获取 token 成功: {token[:20]}...")
+    except Exception as e:
+        print_error(f"获取 token 失败: {e}")
+        return
+    
+    # 构建创建数据表的请求
+    app_token = settings.FEISHU_APP_TOKEN
+    url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables"
+    
+    # 数据表字段定义
+    payload = {
+        "table": {
+            "name": "账单记录",
+            "default_view_name": "默认视图",
+            "fields": [
+                {
+                    "field_name": "账单日",
+                    "type": 5,  # DateTime
+                    "ui_type": "DateTime",
+                    "property": {
+                        "auto_fill": False,
+                        "date_formatter": "yyyy/MM/dd"
+                    }
+                },
+                {
+                    "field_name": "类目",
+                    "type": 4,  # MultiSelect
+                    "ui_type": "MultiSelect",
+                    "property": {
+                        "options": [
+                            {"name": "餐食费", "color": 4},
+                            {"name": "食材采购", "color": 26},
+                            {"name": "水电气暖", "color": 53},
+                            {"name": "房租(物网维修)", "color": 54},
+                            {"name": "常住会员费", "color": 51},
+                            {"name": "普通会员费", "color": 0},
+                            {"name": "临时住宿", "color": 9},
+                            {"name": "公共设施采购", "color": 23},
+                            {"name": "清账", "color": 33}
+                        ]
+                    }
+                },
+                {
+                    "field_name": "金额",
+                    "type": 2,  # Number
+                    "ui_type": "Number",
+                    "property": {
+                        "formatter": "0.00"
+                    }
+                },
+                {
+                    "field_name": "细账",
+                    "type": 1,  # Text
+                    "ui_type": "Text"
+                },
+                {
+                    "field_name": "报账图",
+                    "type": 17,  # Attachment
+                    "ui_type": "Attachment"
+                },
+                {
+                    "field_name": "清账说明",
+                    "type": 4,  # MultiSelect
+                    "ui_type": "MultiSelect",
+                    "property": {
+                        "options": [
+                            {"name": "未报账", "color": 33},
+                            {"name": "未清账", "color": 40},
+                            {"name": "已报销", "color": 26}
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+    
+    print_info(f"创建数据表: {payload['table']['name']}")
+    print(f"   App Token: {app_token}")
+    print(f"   字段数量: {len(payload['table']['fields'])}")
+    
+    # 发送请求
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(url, json=payload, headers=headers)
+        result = resp.json()
+    
+    print(f"   状态码: {resp.status_code}")
+    print(f"   响应: {result}")
+    
+    if result.get("code") == 0:
+        table_id = result["data"]["table_id"]
+        print_success(f"数据表创建成功!")
+        print(f"   Table ID: {table_id}")
+        print(f"\n请将此 Table ID 更新到配置文件中:")
+        print(f"   FEISHU_TABLE_ID={table_id}")
+    else:
+        print_error(f"创建失败: {result.get('msg', '未知错误')}")
+        print(f"   错误码: {result.get('code')}")
+
+
 def print_usage():
     """打印使用说明"""
     print("""
@@ -489,6 +608,7 @@ XClub API 测试脚本
     python tests/test_api.py <session_id>        使用指定 session 测试
     python tests/test_api.py --gen-code [N] [备注]   生成 N 个激活码
     python tests/test_api.py --list-codes [状态]     列出激活码 (状态: 1=未使用, 2=已使用, 3=已作废)
+    python tests/test_api.py --create-table          创建飞书多维表格数据表
 
 示例:
     python tests/test_api.py --gen-code              生成 1 个激活码
@@ -496,6 +616,7 @@ XClub API 测试脚本
     python tests/test_api.py --gen-code 10 "批次A"   生成 10 个激活码，备注为 "批次A"
     python tests/test_api.py --list-codes            列出所有激活码
     python tests/test_api.py --list-codes 1          列出未使用的激活码
+    python tests/test_api.py --create-table          在飞书多维表格中创建账单数据表
 """)
 
 
@@ -517,6 +638,10 @@ if __name__ == "__main__":
             # 列出激活码
             state = int(sys.argv[2]) if len(sys.argv) > 2 else None
             list_activation_codes(state)
+        
+        elif arg == "--create-table":
+            # 创建飞书数据表
+            asyncio.run(create_feishu_table())
         
         else:
             # 使用指定的 session_id 测试
