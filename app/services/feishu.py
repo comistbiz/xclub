@@ -83,7 +83,7 @@ class FeishuService:
     
     async def create_record(
         self,
-        nickname: str,
+        realname: str,
         meal_type: str,
         price: float,
         date: Optional[int] = None
@@ -91,7 +91,7 @@ class FeishuService:
         """创建打卡记录到飞书多维表格
         
         Args:
-            nickname: 微信昵称
+            realname: 用户真实姓名
             meal_type: 时间段 (早餐/午餐/晚餐)
             price: 价格
             date: 账单日时间戳 (毫秒)，默认当前时间
@@ -110,14 +110,14 @@ class FeishuService:
             date = int(time.time() * 1000)
         
         # 构建细账内容: "午餐 xxx"
-        detail = f"{meal_type} {nickname}"
+        detail = f"{meal_type} {realname}"
         
         # 构建请求体
         # 字段说明:
         # - 账单日: 日期时间戳
         # - 类目: 多选，固定 "餐食费"
         # - 金额: 数字
-        # - 细账: 文本，格式 "午餐 xxx"
+        # - 细账: 文本，格式 "午餐 真实姓名"
         # - 清账说明: 多选，固定 "未清账"
         # - 收入/支出、求和: 公式自动计算，不需要填
         payload = {
@@ -135,7 +135,7 @@ class FeishuService:
             "Authorization": f"Bearer {token}"
         }
         
-        log.info(f"创建飞书记录: nickname={nickname}, meal_type={meal_type}, price={price}")
+        log.info(f"创建飞书记录: realname={realname}, meal_type={meal_type}, price={price}")
         
         async with httpx.AsyncClient() as client:
             response = await client.post(
